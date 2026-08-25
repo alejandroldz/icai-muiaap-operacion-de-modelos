@@ -1,23 +1,48 @@
-# Clase 2 — Taller: primera interfaz del modelo
+# Clase 2 — Taller: frontal Wine sobre el bundle S4
 
-**Duración:** 2 horas de práctica
+**Duración:** 120 minutos de práctica guiada
 
-La pareja implementa el starter de la práctica 02. Parte de un gateway que ya
-conoce el contrato de S3/S4 y concentra el trabajo en recoger valores,
-conectar el botón con la inferencia y presentar la respuesta.
+La pareja aplica al proyecto Wine el patrón practicado con Churn. El starter es
+autocontenido: ya incluye los once `FIELD_SPECS`. La Práctica 5.1 no entrega
+ningún archivo que deba copiarse.
+
+## Prerrequisito
+
+Cada pareja necesita su bundle real de S4 y configura el directorio mediante:
+
+```powershell
+$env:MODEL_UI_BUNDLE = 'RUTA_AL_BUNDLE_DE_S4'
+```
+
+La aplicación no ofrece predicciones sustitutivas. Los dobles de gateway
+existen únicamente bajo `tests/`.
 
 ## Secuencia
 
-1. Ejecutar la suite y leer la estructura del starter.
-2. Implementar el formulario a partir del contrato de la práctica 01.
-3. Conectar `submitted` con `InferenceGateway.predict()`.
-4. Mostrar resultado, confianza y versiones.
-5. Representar un error básico de gateway sin traceback.
-6. Ejecutar la app y documentar dos problemas que se resolverán en S6.
+1. Localizar y validar el bundle de S4.
+2. Revisar los once `FIELD_SPECS` proporcionados.
+3. Implementar los widgets dentro de un único `st.form`.
+4. Comprobar cero llamadas al editar y una tras el submit.
+5. Usar únicamente `InferenceGateway.predict(values)`.
+6. Mostrar `quality_band`, `confidence`, `model_version` y
+   `preprocessing_version`.
+7. Reproducir un bundle ausente y mostrar un mensaje accionable sin detalles
+   internos.
+8. Ejecutar tests y completar la matriz QA.
+9. Anotar dos límites para S6 sin implementar estado, caché, FSM ni telemetría.
 
 ## Entrega
 
 - código del starter completado;
-- captura de la app con resultado;
-- captura o registro del error;
-- nota breve: “qué ocurre al hacer rerun y qué queremos conservar en S6”.
+- configuración documentada de `MODEL_UI_BUNDLE`;
+- suite y formato verdes;
+- evidencia de una inferencia con el bundle real;
+- evidencia del tratamiento de bundle ausente;
+- matriz QA: arranque con bundle, edición sin envío, submit válido y bundle
+  ausente.
+
+## Relación con 5.1
+
+Se transfiere el patrón `formulario → submit → una inferencia →
+resultado/error`. No se reutilizan los cuatro campos, la regla, los labels ni
+ningún archivo del caso Churn.
