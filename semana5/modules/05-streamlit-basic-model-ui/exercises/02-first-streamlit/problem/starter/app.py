@@ -1,60 +1,99 @@
-"""Starter de la primera interfaz Streamlit."""
+"""Starter de la primera interfaz Streamlit para Wine Quality."""
 
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 from model_ui.contracts import PredictionPayload
-from model_ui.errors import ArtifactUnavailableError
-from model_ui.gateway import (
-    FEATURE_NAMES,
-    DemoGateway,
-    InferenceGateway,
-    PackagedBundleGateway,
-    UnavailableGateway,
-)
-
-FEATURE_FIELDS = (
-    ("fixed_acidity", "Fixed acidity", 0.0, 20.0, 7.4),
-    ("volatile_acidity", "Volatile acidity", 0.0, 2.0, 0.7),
-    ("citric_acid", "Citric acid", 0.0, 2.0, 0.0),
-    ("residual_sugar", "Residual sugar", 0.0, 20.0, 1.9),
-    ("chlorides", "Chlorides", 0.0, 1.0, 0.076),
-    ("free_sulfur_dioxide", "Free sulfur dioxide", 0.0, 100.0, 11.0),
-    ("total_sulfur_dioxide", "Total sulfur dioxide", 0.0, 300.0, 34.0),
-    ("density", "Density", 0.98, 1.01, 0.9978),
-    ("ph", "pH", 2.5, 4.5, 3.51),
-    ("sulphates", "Sulphates", 0.0, 3.0, 0.56),
-    ("alcohol", "Alcohol", 5.0, 20.0, 9.4),
-)
-
-assert tuple(field[0] for field in FEATURE_FIELDS) == FEATURE_NAMES
+from model_ui.errors import ArtifactUnavailableError, InputContractError
+from model_ui.gateway import InferenceGateway, PackagedBundleGateway
+from model_ui.ui_schema import FIELD_SPECS
 
 
 def build_gateway() -> InferenceGateway:
-    """Selecciona el bundle configurado o la demo determinista."""
+    """Carga obligatoriamente el bundle de S4 configurado."""
 
     bundle_value = os.getenv("MODEL_UI_BUNDLE")
     if not bundle_value:
-        return DemoGateway()
+        raise ArtifactUnavailableError("MODEL_UI_BUNDLE no está configurado.")
     try:
         return PackagedBundleGateway.from_bundle_path(Path(bundle_value))
-    except Exception as error:  # noqa: BLE001 - se presenta como estado básico
-        return UnavailableGateway(str(error))
+    except Exception as error:  # noqa: BLE001
+        raise ArtifactUnavailableError("No se pudo cargar el bundle de S4.") from error
+
+
+def render_bundle_error(st: Any) -> None:
+    """Presenta una recuperación segura sin revelar detalles internos."""
+
+    st.error("No se pudo cargar el bundle de S4.")
+    st.info("Configura MODEL_UI_BUNDLE y vuelve a ejecutar la aplicación.")
+
+
+def render_inference_error(st: Any) -> None:
+    """Presenta un fallo de validación o inferencia sin detalles sensibles."""
+
+    st.error("No se pudo ejecutar la inferencia.")
+    st.info("Revisa los datos y la compatibilidad del bundle de S4.")
 
 
 def collect_values(st: Any) -> tuple[bool, dict[str, float]]:
-    """TODO: dibuja los once widgets y devuelve submitted, values."""
+    """TODO: renderiza ``FIELD_SPECS`` dentro de un único ``st.form``.
 
-    raise NotImplementedError("TODO: implementa el formulario de S5")
+    Cada ``number_input`` debe recibir label, rango, default, step y una key
+    estable. Devuelve ``(submitted, values)`` sin llamar al gateway.
+    """
+
+    raise NotImplementedError(
+        f"TODO: renderiza los {len(FIELD_SPECS)} campos de FIELD_SPECS"
+    )
 
 
 def render_prediction(st: Any, prediction: PredictionPayload) -> None:
-    """TODO: presenta categoría, confianza y versiones."""
+    """TODO: presenta los cuatro campos de ``PredictionPayload``."""
 
-    raise NotImplementedError("TODO: presenta el resultado sin duplicar inferencia")
+    raise NotImplementedError(
+        "TODO: presenta quality_band, confidence y las dos versiones"
+    )
+
+
+def run_app(st: Any, gateway: InferenceGateway) -> None:
+    """Conecta submit, gateway y salida sin añadir estado avanzado."""
+
+    submitted, values = collect_values(st)
+    if not submitted:
+        st.info("Completa el formulario y pulsa «Ejecutar inferencia».")
+        return
+
+    try:
+        prediction = gateway.predict(values)
+    except ArtifactUnavailableError:
+        render_bundle_error(st)
+        return
+    except InputContractError:
+        render_inference_error(st)
+        return
+    except ValueError:
+        render_inference_error(st)
+        return
+
+    render_prediction(st, prediction)
+
+
+def run_configured_app(
+    st: Any,
+    gateway_factory: Callable[[], InferenceGateway] = build_gateway,
+) -> None:
+    """Carga la configuración y contiene cualquier fallo del bundle."""
+
+    try:
+        gateway = gateway_factory()
+    except ArtifactUnavailableError:
+        render_bundle_error(st)
+        return
+    run_app(st, gateway)
 
 
 def main() -> None:
@@ -71,20 +110,7 @@ def main() -> None:
     st.title("Primera interfaz de inferencia")
     st.caption("S5: formulario, gateway y resultado; el estado avanzado llega en S6.")
 
-    gateway = build_gateway()
-    submitted, values = collect_values(st)
-    if not submitted:
-        return
-
-    try:
-        prediction = gateway.predict(values)
-    except (ArtifactUnavailableError, ValueError) as error:
-        st.error("No se pudo ejecutar la inferencia.")
-        st.info("Revisa los datos o la configuración del bundle.")
-        st.caption(f"Detalle para la demo: {error}")
-        return
-
-    render_prediction(st, prediction)
+    run_configured_app(st)
 
 
 if __name__ == "__main__":

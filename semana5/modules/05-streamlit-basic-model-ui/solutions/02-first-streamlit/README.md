@@ -1,29 +1,48 @@
-# Solución — Primera interfaz Streamlit
+# Solución — Práctica 5.2 Wine
 
-La solución completa mantiene la app como adaptador del gateway:
+Tiempo de referencia: **120 minutos**. Esta solución resuelve las dos
+responsabilidades del alumno: genera los once widgets desde `FIELD_SPECS` y
+presenta los cuatro campos de `PredictionPayload`. La aplicación exige el
+bundle real de S4; los dobles del gateway aparecen únicamente en `tests/`.
 
-- `app.py`: formulario y renderizado básico;
-- `contracts.py`: payload validado;
-- `gateway.py`: demo y bundle de S4;
-- `presentation.py`: etiquetas y copy mínimo.
+## Verificación
 
-## Ejecución
+Desde la raíz del repositorio, en PowerShell:
 
-Desde `semana5/`:
-
-```bash
-uv run pytest
-uv run --extra app streamlit run modules/05-streamlit-basic-model-ui/solutions/02-first-streamlit/app.py
+```powershell
+cd semana5/modules/05-streamlit-basic-model-ui/solutions/02-first-streamlit
+uv sync
+$env:MODEL_UI_BUNDLE = 'RUTA_AL_BUNDLE_DE_S4'
+uv run python -m pytest -q
+uv run ruff check app.py src tests
+uv run ruff format --check app.py src tests
+uv run --with 'streamlit>=1.40,<2.0' streamlit run app.py
 ```
 
-Sin `MODEL_UI_BUNDLE`, la pantalla usa `DemoGateway`. Para probar el bundle de
-S4:
+`uv` encuentra el `pyproject.toml` de `semana5/` en un directorio padre. La
+ruta configurada debe ser el directorio del bundle S4 que contiene
+`manifest.json` y `model.joblib`.
 
-```bash
-MODEL_UI_BUNDLE=/ruta/al/wine_quality_bundle \
-  uv run --extra app streamlit run modules/05-streamlit-basic-model-ui/solutions/02-first-streamlit/app.py
-```
+## QA de referencia: cuatro casos
 
-Esta solución es el snapshot conceptual que S6 debe mejorar: no conserva la
-última respuesta con `st.session_state`, no cachea el gateway de forma
-explícita y no modela las transiciones como estados observables.
+| Caso | Resultado esperado |
+|---|---|
+| Arranque con bundle | Once campos visibles y cero inferencias. |
+| Edición sin envío | Cero llamadas al gateway. |
+| Submit válido | Una llamada y `quality_band`, `confidence`, `model_version` y `preprocessing_version`. |
+| Bundle ausente | Instrucción sobre `MODEL_UI_BUNDLE` sin excepción, ruta ni traceback. |
+
+La solución debe completar las 27 pruebas. Una ejecución sin bundle nunca es
+una entrega válida.
+
+## Rúbrica de referencia (10 puntos)
+
+| Criterio | Puntos |
+|---|---:|
+| Once widgets gobernados por el esquema Wine | 2 |
+| Cero/una llamada según el submit | 2 |
+| Bundle S4 real detrás de `InferenceGateway` | 2 |
+| Cuatro salidas presentadas | 2 |
+| Error seguro, tests y QA | 2 |
+
+`session_state`, caché, FSM y telemetría se incorporarán en S6.

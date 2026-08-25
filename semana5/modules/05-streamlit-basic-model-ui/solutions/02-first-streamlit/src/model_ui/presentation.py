@@ -16,6 +16,6 @@ def quality_label(prediction: PredictionPayload) -> str:
 
 
 def confidence_caption(prediction: PredictionPayload) -> str:
-    """Construye el texto básico de confianza de la demo."""
+    """Construye el texto básico de confianza de la interfaz."""
 
     return f"Confianza reportada por el modelo: {prediction.confidence:.0%}."
