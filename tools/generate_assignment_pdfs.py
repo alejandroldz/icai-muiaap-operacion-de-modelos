@@ -8,13 +8,14 @@ remains in each week's ``modules`` directory.
 
 from __future__ import annotations
 
+import argparse
 import html
-from dataclasses import dataclass
+from collections.abc import Iterable
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable
 
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
@@ -22,7 +23,6 @@ from reportlab.platypus import (
     Flowable,
     Image,
     KeepTogether,
-    PageBreak,
     Paragraph,
     Preformatted,
     SimpleDocTemplate,
@@ -65,6 +65,7 @@ class Assignment:
     commands: list[str]
     notes: list[str]
     source_paths: list[str]
+    task_snippets: dict[int, tuple[str, str]] = field(default_factory=dict)
 
 
 styles = getSampleStyleSheet()
@@ -158,6 +159,26 @@ TASK = ParagraphStyle(
     firstLineIndent=0,
     spaceAfter=6,
 )
+WEEK_TWO_BODY = ParagraphStyle(
+    "WeekTwoBody",
+    parent=BODY,
+    fontSize=8.2,
+    leading=10.3,
+    spaceAfter=3,
+)
+WEEK_TWO_H1 = ParagraphStyle(
+    "WeekTwoSection",
+    parent=H1,
+    fontSize=10.8,
+    leading=12,
+    spaceBefore=3,
+    spaceAfter=1,
+)
+WEEK_TWO_TASK = ParagraphStyle(
+    "WeekTwoTask",
+    parent=WEEK_TWO_BODY,
+    spaceAfter=3,
+)
 TABLE_HEAD = ParagraphStyle(
     "TableHead",
     parent=BODY_SMALL,
@@ -180,6 +201,28 @@ CODE = ParagraphStyle(
     fontSize=7.2,
     leading=9.2,
     textColor=INK,
+)
+SNIPPET_LABEL = ParagraphStyle(
+    "SnippetLabel",
+    parent=BODY_SMALL,
+    fontName="Helvetica-Bold",
+    fontSize=6.8,
+    leading=8,
+    textColor=ACCENT_DARK,
+    spaceAfter=0,
+)
+SNIPPET_CODE = ParagraphStyle(
+    "SnippetCode",
+    parent=CODE,
+    fontSize=6.5,
+    leading=7.4,
+    textColor=INK,
+)
+WEEK_TWO_CODE = ParagraphStyle(
+    "WeekTwoCode",
+    parent=CODE,
+    fontSize=6.6,
+    leading=7.7,
 )
 CALLOUT = ParagraphStyle(
     "Callout",
@@ -217,24 +260,60 @@ def section(title: str, style: ParagraphStyle = H1) -> list[Flowable]:
     return [Paragraph(text(title), style)]
 
 
-def numbered(items: Iterable[tuple[str, str]]) -> list[Flowable]:
-    flowables: list[Flowable] = []
-    for number, (title, body) in enumerate(items, start=1):
-        flowables.append(
-            markup(
-                f'<font color="{ACCENT.hexval()}"><b>{number:02d}</b></font> '
-                f"<b>{html.escape(title)}</b> - {html.escape(body)}",
-                TASK,
-            )
+def snippet_block(label: str, source: str) -> Table:
+    block = Table(
+        [[p(label, SNIPPET_LABEL)], [Preformatted(source.rstrip(), SNIPPET_CODE)]],
+        colWidths=[170 * mm],
+        hAlign="LEFT",
+    )
+    block.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), PALE_BLUE),
+                ("BOX", (0, 0), (-1, -1), 0.45, GRID),
+                ("LINEBELOW", (0, 0), (-1, 0), 0.35, GRID),
+                ("LEFTPADDING", (0, 0), (-1, -1), 7),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+                ("TOPPADDING", (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ]
         )
+    )
+    return block
+
+
+def numbered(
+    items: Iterable[tuple[str, str]],
+    task_snippets: dict[int, tuple[str, str]] | None = None,
+    task_style: ParagraphStyle = TASK,
+) -> list[Flowable]:
+    flowables: list[Flowable] = []
+    snippets = task_snippets or {}
+    for number, (title, body) in enumerate(items, start=1):
+        task_paragraph = markup(
+            f'<font color="{ACCENT.hexval()}"><b>{number:02d}</b></font> '
+            f"<b>{html.escape(title)}</b> - {html.escape(body)}",
+            task_style,
+        )
+        if number in snippets:
+            label, source = snippets[number]
+            flowables.append(
+                KeepTogether(
+                    [task_paragraph, snippet_block(label, source), Spacer(1, 2)]
+                )
+            )
+        else:
+            flowables.append(task_paragraph)
     return flowables
 
 
-def checklist(items: Iterable[str]) -> list[Flowable]:
+def checklist(
+    items: Iterable[str], style: ParagraphStyle = BODY
+) -> list[Flowable]:
     return [
         markup(
             f'<font color="{ACCENT.hexval()}">[ ]</font> {html.escape(item)}',
-            BODY,
+            style,
         )
         for item in items
     ]
@@ -244,12 +323,14 @@ def make_table(
     headers: list[str],
     rows: list[tuple[str, ...]],
     widths: list[float] | None = None,
+    compact: bool = False,
 ) -> Table:
     data = [[Paragraph(text(header), TABLE_HEAD) for header in headers]]
     data.extend(
         [[Paragraph(text(cell), TABLE_CELL) for cell in row] for row in rows]
     )
     table = Table(data, colWidths=widths, repeatRows=1, hAlign="LEFT")
+    vertical_padding = 3 if compact else 5
     table.setStyle(
         TableStyle(
             [
@@ -261,8 +342,8 @@ def make_table(
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
                 ("LEFTPADDING", (0, 0), (-1, -1), 6),
                 ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-                ("TOPPADDING", (0, 0), (-1, -1), 5),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                ("TOPPADDING", (0, 0), (-1, -1), vertical_padding),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), vertical_padding),
             ]
         )
     )
@@ -289,8 +370,10 @@ def callout(label: str, body: str) -> Table:
     return box
 
 
-def code_block(commands: list[str]) -> Preformatted:
-    return Preformatted("\n\n".join(commands), CODE)
+def code_block(
+    commands: list[str], style: ParagraphStyle = CODE
+) -> Preformatted:
+    return Preformatted("\n\n".join(commands), style)
 
 
 def header_footer(canvas, doc) -> None:
@@ -325,6 +408,7 @@ def title_block(assignment: Assignment) -> list[Flowable]:
         ["DURACION", "MODALIDAD", "PREREQUISITOS"],
         [(assignment.duration, assignment.modality, assignment.prerequisites)],
         widths=[43 * mm, 48 * mm, 79 * mm],
+        compact=assignment.week in {2, 7},
     )
     return [
         logo,
@@ -341,49 +425,64 @@ def title_block(assignment: Assignment) -> list[Flowable]:
 
 
 def build_story(assignment: Assignment) -> list[Flowable]:
+    uses_compact_layout = assignment.week in {2, 7}
+    body_style = WEEK_TWO_BODY if uses_compact_layout else BODY
+    section_style = WEEK_TWO_H1 if uses_compact_layout else H1
+    task_style = WEEK_TWO_TASK if uses_compact_layout else TASK
     story: list[Flowable] = []
     story.extend(title_block(assignment))
-    story.extend(section("1. Encargo"))
-    story.append(p(assignment.goal))
+    story.extend(section("1. Encargo", section_style))
+    story.append(p(assignment.goal, body_style))
     story.append(callout("Regla de continuidad", assignment.context[0]))
-    story.append(Spacer(1, 5))
+    story.append(Spacer(1, 2 if uses_compact_layout else 5))
 
-    story.extend(section("2. Punto de partida"))
-    story.extend([p(f"- {item}", BODY) for item in assignment.context[1:]])
-    story.extend(section("3. Material que recibes"))
-    story.extend([p(f"- {item}", BODY) for item in assignment.materials])
+    story.extend(section("2. Punto de partida", section_style))
+    story.extend([p(f"- {item}", body_style) for item in assignment.context[1:]])
+    story.extend(section("3. Material que recibes", section_style))
+    story.extend([p(f"- {item}", body_style) for item in assignment.materials])
 
-    story.extend(section("4. Tareas"))
-    story.extend(numbered(assignment.tasks))
+    story.extend(section("4. Tareas", section_style))
+    story.extend(
+        numbered(assignment.tasks, assignment.task_snippets, task_style)
+    )
 
-    story.extend(section("5. Entrega"))
+    story.extend(section("5. Entrega", section_style))
     story.append(
         make_table(
             ["Evidencia", "Que debe permitir comprobar"],
             assignment.deliverables,
             widths=[52 * mm, 118 * mm],
+            compact=uses_compact_layout,
         )
     )
-    story.append(Spacer(1, 7))
+    story.append(Spacer(1, 2 if uses_compact_layout else 7))
 
-    story.extend(section("6. Criterios de aceptacion"))
-    story.extend(checklist(assignment.acceptance))
+    acceptance_section = [
+        *section("6. Criterios de aceptacion", section_style),
+        *checklist(assignment.acceptance, body_style),
+    ]
+    if uses_compact_layout:
+        story.append(KeepTogether(acceptance_section))
+    else:
+        story.extend(acceptance_section)
 
-    story.extend(section("7. Rubrica orientativa"))
+    story.extend(section("7. Rubrica orientativa", section_style))
     story.append(
         make_table(
             ["Criterio", "Puntos"],
             assignment.rubric,
             widths=[145 * mm, 25 * mm],
+            compact=uses_compact_layout,
         )
     )
 
-    story.extend(section("8. Comprobacion"))
-    story.append(code_block(assignment.commands))
-    story.append(Spacer(1, 6))
+    story.extend(section("8. Comprobacion", section_style))
+    code_style = WEEK_TWO_CODE if uses_compact_layout else CODE
+    story.append(code_block(assignment.commands, code_style))
+    story.append(Spacer(1, 0 if uses_compact_layout else 6))
 
-    story.extend(section("9. Notas y limites"))
-    story.extend([p(f"- {item}", BODY) for item in assignment.notes])
+    story.extend(section("9. Notas y limites", section_style))
+    story.extend([p(f"- {item}", body_style) for item in assignment.notes])
     story.extend(section("Referencia en el repositorio", REFERENCE_HEADING))
     story.extend([p(path, REFERENCE) for path in assignment.source_paths])
     return story
@@ -407,6 +506,7 @@ def assignment(
     commands: list[str],
     notes: list[str],
     source_paths: list[str],
+    task_snippets: dict[int, tuple[str, str]] | None = None,
 ) -> Assignment:
     return Assignment(
         week=week,
@@ -426,6 +526,7 @@ def assignment(
         commands=commands,
         notes=notes,
         source_paths=source_paths,
+        task_snippets=task_snippets or {},
     )
 
 
@@ -554,6 +655,218 @@ ASSIGNMENTS = [
         [
             "semana1/modules/01-mlflow-databricks-foundations/exercises/01_tracking_mlops/README.md",
             "semana1/modules/01-mlflow-databricks-foundations/exercises/02_agent_llmops/README.md",
+        ],
+    ),
+    assignment(
+        2,
+        1,
+        "Del directorio vacio al proyecto reproducible",
+        "Un proyecto pequeno para practicar entorno, dependencias y trazabilidad local",
+        "45-50 min",
+        "Parejas, terminal Bash",
+        "uv y Git disponibles; no necesitas trabajo previo",
+        (
+            "Construir env-demo desde un directorio vacio y demostrar que una "
+            "sola base de codigo se comporta de forma predecible en dev, pre y pro."
+        ),
+        [
+            "Trabajad solo en local: esta practica no usa remoto ni parte del ejercicio de Wine.",
+            "La pareja comparte pantalla y alterna quien escribe los comandos y quien contrasta la evidencia.",
+            "El resultado debe usar un unico codigo, un unico uv.lock y un unico .venv para los tres entornos.",
+        ],
+        [
+            "Una terminal Bash situada en un directorio de trabajo vacio",
+            "uv y Git ya instalados",
+            "Los dos cuadros de codigo incluidos en este documento",
+        ],
+        [
+            (
+                "Crea el proyecto",
+                "Crea env-demo, entra en el directorio, ejecuta git init y despues uv init --package --vcs none .",
+            ),
+            (
+                "Declara dependencias",
+                "Crea .gitignore con .venv/, __pycache__/, .pytest_cache/ y .ruff_cache/. Anade Rich, Pytest y Ruff con los comandos indicados.",
+            ),
+            (
+                "Revisa la estructura",
+                "Localiza pyproject.toml, uv.lock, src/env_demo y tests. No crees carpetas distintas por entorno ni repitas dependencias.",
+            ),
+            (
+                "Implementa el comando",
+                "Sustituye src/env_demo/main.py por este codigo. La variable APP_ENV acepta dev, pre o pro, normaliza la entrada y Rich muestra el mensaje.",
+            ),
+            (
+                "Prueba el contrato",
+                "Crea tests/test_main.py con estos casos. El parametrizado cubre los tres valores admitidos y el ultimo protege el error.",
+            ),
+            (
+                "Documenta y registra",
+                "Escribe en README como instalar, ejecutar y comprobar. Haz tres commits locales, en orden, con las intenciones exactas indicadas abajo.",
+            ),
+        ],
+        [
+            ("Proyecto local", "pyproject.toml, uv.lock, paquete src, tests, README y .gitignore."),
+            ("Historial", "Tres commits locales pequenos y legibles, sin configurar remoto."),
+            ("Comprobacion", "Salida de los tres entornos, Pytest, Ruff y controles de Git."),
+        ],
+        [
+            "Los tres entornos ejecutan exactamente el mismo paquete y cambian solo mediante APP_ENV.",
+            "La entrada local provoca ValueError y los cuatro casos de prueba pasan.",
+            "Rich es dependencia normal; Pytest y Ruff son dependencias de desarrollo.",
+            ".venv no aparece entre los archivos versionados y uv.lock si aparece.",
+            "README permite repetir el trabajo desde un checkout limpio.",
+        ],
+        [
+            ("Proyecto y dependencias", "3"),
+            ("Comando y entornos", "3"),
+            ("Tests y calidad", "2"),
+            ("README e historial", "2"),
+        ],
+        [
+            "mkdir env-demo && cd env-demo\ngit init\nuv init --package --vcs none .\nprintf '.venv/\\n__pycache__/\\n.pytest_cache/\\n.ruff_cache/\\n' > .gitignore",
+            "uv add rich\nuv add --dev pytest ruff",
+            "APP_ENV=dev uv run python -m env_demo.main\nAPP_ENV=pre uv run python -m env_demo.main\nAPP_ENV=pro uv run python -m env_demo.main",
+            "uv run pytest\nuv run ruff check .",
+            "git log --oneline\ngit ls-files .venv",
+        ],
+        [
+            "Commits, en orden: bootstrap uv project; add environment-aware command; add tests and usage documentation.",
+            "Una sola base de codigo, uv.lock y .venv; no prepares variantes dev/pre/pro.",
+            "Termina sin remoto: no publiques ni abras una revision.",
+        ],
+        [
+            "Assignment autocontenido; configuracion en pyproject.toml",
+        ],
+        task_snippets={
+            4: (
+                "src/env_demo/main.py",
+                '''import os
+
+from rich import print
+
+VALID_ENVIRONMENTS = {"dev", "pre", "pro"}
+
+
+def environment_message(environment: str) -> str:
+    normalized = environment.strip().lower()
+    if normalized not in VALID_ENVIRONMENTS:
+        raise ValueError("APP_ENV debe ser dev, pre o pro")
+    return f"Entorno activo: {normalized.upper()}"
+
+
+def main() -> None:
+    print(environment_message(os.getenv("APP_ENV", "dev")))
+
+
+if __name__ == "__main__":
+    main()
+''',
+            ),
+            5: (
+                "tests/test_main.py",
+                '''import pytest
+
+from env_demo.main import environment_message
+
+
+@pytest.mark.parametrize("environment", ["dev", "pre", "pro"])
+def test_known_environment(environment: str) -> None:
+    assert environment.upper() in environment_message(environment)
+
+
+def test_unknown_environment() -> None:
+    with pytest.raises(ValueError, match="APP_ENV"):
+        environment_message("local")
+''',
+            ),
+        },
+    ),
+    assignment(
+        2,
+        2,
+        "De la practica de S1 a un proyecto revisable",
+        "Ordenar el entrenamiento de Wine en un fork propio y abrir una revision segura",
+        "120 min",
+        "Parejas, fork propio",
+        "Fork personal del curso y terminal Bash",
+        (
+            "Convertir los tres archivos de partida de S1 en un proyecto uv que "
+            "otra pareja pueda instalar, ejecutar y revisar como pull request (PR)."
+        ),
+        [
+            "Parte unicamente de semana2/starter/WineQT.csv, semana2/starter/train.py y semana2/starter/test_train.py.",
+            "Todo el trabajo ocurre en vuestro fork. La rama de entrega es feature/s2-wine-project.",
+            "La revision se abre contra main del mismo fork, nunca el repositorio docente.",
+        ],
+        [
+            "Fork propio actualizado y clonado en local",
+            "Los tres archivos de semana2/starter, sin reutilizar una solucion externa",
+            "uv, Git, navegador y una terminal Bash",
+        ],
+        [
+            (
+                "Abre la rama",
+                "Desde la raiz del fork ejecuta git switch -c feature/s2-wine-project y confirma que no estas trabajando sobre main.",
+            ),
+            (
+                "Inicializa el paquete",
+                "Ejecuta uv init --package --vcs none --name wine-quality semana2/wine-quality-project y entra en el nuevo proyecto.",
+            ),
+            (
+                "Instala dependencias",
+                "Anade pandas y scikit-learn como dependencias de ejecucion; anade Pytest y Ruff solo al grupo de desarrollo.",
+            ),
+            (
+                "Migra el starter",
+                "Copia WineQT.csv a data/raw/WineQT.csv, train.py a src/wine_quality/train.py y test_train.py a tests/test_train.py. Conserva esos destinos.",
+            ),
+            (
+                "Cierra la reproducibilidad",
+                "Ajusta rutas e imports, genera el lock y ejecuta uv sync --locked. El entrenamiento debe arrancar como modulo con el entorno bloqueado.",
+            ),
+            (
+                "Documenta y revisa",
+                "Explica en README instalacion, estructura y comprobaciones. Crea 2-3 commits, sube la rama y abre desde la web el pull request (PR).",
+            ),
+        ],
+        [
+            ("Proyecto uv", "Paquete, datos raw, tests, pyproject.toml, uv.lock y README."),
+            ("Historial", "Rama con 2-3 commits que separan estructura, migracion y verificacion."),
+            ("Revision", "Enlace a la revision abierta contra main del mismo fork."),
+            ("Evidencia", "Salida del entrenamiento, Pytest y Ruff ejecutados con --frozen."),
+        ],
+        [
+            "El proyecto nace del starter indicado y mantiene cada archivo en su destino acordado.",
+            "El checkout se instala con uv sync --locked sin resolver versiones nuevas.",
+            "El entrenamiento modular, los tests y Ruff terminan correctamente con --frozen.",
+            "README explica el recorrido desde la raiz del fork.",
+            "El pull request (PR) muestra 2-3 commits y tiene como base main del fork propio.",
+        ],
+        [
+            ("Estructura y migracion", "3"),
+            ("Entorno bloqueado", "2"),
+            ("Ejecucion y tests", "3"),
+            ("README y revision", "2"),
+        ],
+        [
+            "git switch -c feature/s2-wine-project",
+            "uv init --package --vcs none --name wine-quality semana2/wine-quality-project\ncd semana2/wine-quality-project",
+            "uv add pandas scikit-learn\nuv add --dev pytest ruff",
+            "mkdir -p data/raw tests\ncp ../starter/WineQT.csv data/raw/WineQT.csv\ncp ../starter/train.py src/wine_quality/train.py\ncp ../starter/test_train.py tests/test_train.py",
+            "uv sync --locked",
+            "uv run --frozen python -m wine_quality.train\nuv run --frozen pytest\nuv run --frozen ruff check .",
+            "git push -u origin feature/s2-wine-project",
+        ],
+        [
+            "Abre el pull request (PR) desde la web: origen feature/s2-wine-project y destino main del mismo fork.",
+            "No anadas herramientas ni artefactos que no formen parte del objetivo: basta con el entrenamiento actual y su prueba.",
+            "No cambies la base al repositorio docente. Si la web la selecciona, corrige el destino antes de crear la revision.",
+        ],
+        [
+            "semana2/starter/WineQT.csv",
+            "semana2/starter/train.py",
+            "semana2/starter/test_train.py",
         ],
     ),
     assignment(
@@ -810,127 +1123,273 @@ ASSIGNMENTS = [
     assignment(
         5,
         1,
-        "Contrato de formulario y Streamlit basico",
-        "Traducir el contrato de S4 a una primera pantalla",
-        "1 hora teoria + 1 hora demo guiada",
-        "Parejas",
-        "Bundle de S4 y app mental de Streamlit",
+        "Del formulario a la inferencia: miniapp Churn",
+        "Completar una miniapp guiada con una frontera de inferencia observable",
+        "60 min",
+        "Parejas, práctica guiada",
+        "Starter de churn y teoría de formularios y reruns",
         (
-            "Diseñar una interfaz minima para que una persona introduzca los once "
-            "campos del contrato, envie una peticion completa y entienda el "
-            "resultado sin conocer el modelo."
+            "Completar app.py sobre el predict() ya resuelto para recoger cuatro "
+            "inputs, inferir solo al enviar y presentar un resultado comprensible."
         ),
         [
-            "S5 no vuelve a entrenar, preprocesar ni cargar joblib desde app.py: usa un gateway.",
-            "El formulario evita inferir con cada cambio de widget.",
-            "La app basica no introduce aun session_state, cache_resource ni maquina de estados; eso pertenece a S6.",
-            "La tabla de campos sera el acuerdo que implementara la practica 5.2.",
+            "El starter aporta predict() completo: no se modifica la lógica del modelo.",
+            (
+                "Los cuatro inputs son tenure_months, monthly_spend_eur, "
+                "support_calls y has_annual_contract."
+            ),
+            (
+                "Un único st.form agrupa la edición; st.form_submit_button marca la "
+                "frontera entre editar e inferir."
+            ),
+            (
+                "Un ValueError se traduce a un mensaje seguro y accionable, sin "
+                "traceback ni detalles internos."
+            ),
         ],
         [
-            "manifest_example.json de S4",
-            "assets/03-wine-quality/inference_samples.csv",
-            "notebook 01-streamlit-basics-guiada.ipynb",
-            "exercises/01-ui-form-contract/problem/",
+            "semana5/modules/05-streamlit-basic-model-ui/exercises/01-churn-streamlit/problem/starter/",
+            "app.py con los TODO y src/churn_demo/model.py con predict() completo",
+            "tests/ y fake de Streamlit para comprobar el rerun sin navegador",
         ],
         [
-            ("Predice el rerun", "Explica que lineas se ejecutan al cambiar un widget y al enviar un formulario; anota que no queda persistente."),
-            ("Diseña el formulario", "Para cada feature fija label, widget, tipo, minimo, maximo y valor inicial sin cambiar el nombre del contrato."),
-            ("Define el momento de inferencia", "Describe por que `st.form_submit_button` debe ser el unico disparador de la peticion."),
-            ("Diseña la salida", "Decide que mostrar: categoria, confianza reportada, version de modelo, version de preprocesado y mensaje de limite."),
-            ("Prepara S6", "Escribe dos limitaciones de esta app que una interfaz avanzada debera resolver."),
+            (
+                "Lee el contrato y anticipa dos predicciones · 0–10 min",
+                (
+                    "Lee la firma de predict() y anticipa el resultado para los "
+                    "perfiles 2, 95, 4, False y 36, 35, 0, True."
+                ),
+            ),
+            (
+                "Construye el formulario · 10–25 min",
+                (
+                    "Crea los cuatro widgets dentro de un único st.form y añade "
+                    "st.form_submit_button."
+                ),
+            ),
+            (
+                "Conecta submit y predict() · 25–35 min",
+                (
+                    "Mientras se edita debe haber cero llamadas; cada envío válido "
+                    "hace una llamada a predict()."
+                ),
+            ),
+            (
+                "Presenta resultado y error · 35–45 min",
+                (
+                    "Muestra label, risk_score y explanation con etiquetas claras y "
+                    "traduce ValueError a un mensaje seguro."
+                ),
+            ),
+            (
+                "Ejecuta los tests · 45–55 min",
+                (
+                    "Corrige cada contrato incumplido hasta dejar las 13 pruebas "
+                    "verdes y el formato limpio."
+                ),
+            ),
+            (
+                "Cierra QA y puente · 55–60 min",
+                (
+                    "Registra los cuatro casos manuales y explica qué patrón se "
+                    "conservará al pasar al contrato Wine."
+                ),
+            ),
         ],
         [
-            ("Tabla del formulario", "Los once campos con mapeo contrato -> widget y limites."),
-            ("Mapa de rerun", "Prediccion de comportamiento al editar y enviar."),
-            ("Boceto de resultado", "Categoria, confianza, versiones y error basico."),
-            ("Handoff a S6", "Dos limitaciones concretas y observables."),
+            (
+                "Código",
+                "app.py completo; predict() permanece como lo entrega el starter.",
+            ),
+            (
+                "Pruebas",
+                "Salida de la suite con las 13 pruebas verdes y formato limpio.",
+            ),
+            (
+                "QA manual",
+                "Registro breve de los cuatro casos y su resultado observable.",
+            ),
         ],
         [
-            "La tabla contiene exactamente las once features del contrato.",
-            "No se infiere al cambiar un widget, solo al enviar el formulario.",
-            "El resultado conserva versiones y no promete certeza.",
-            "El diseño no introduce un contrato paralelo al de S4.",
-            "Otra pareja puede implementar la pantalla leyendo la tabla.",
-        ],
-        [("Mapeo de contrato", "3"), ("Modelo de rerun", "2"), ("Diseño de resultado", "3"), ("Handoff a S6", "2")],
-        [
-            "Abrir el notebook guiado y el lienzo de contrato.",
-            "Completar la tabla y contrastar tres filas con S4.",
-            "Guardar el diseño como especificacion de la practica 5.2.",
+            "Aparecen exactamente los cuatro inputs dentro de un único st.form.",
+            "Editar provoca cero llamadas y st.form_submit_button provoca una llamada.",
+            "label, risk_score y explanation se muestran tras un envío válido.",
+            "ValueError produce un error seguro, accionable y sin detalle interno.",
+            "Las 13 pruebas y los cuatro casos de QA quedan verdes.",
         ],
         [
-            "No implementes aun session_state ni cache_resource.",
-            "Los limites de widgets ayudan a UX, pero la validacion definitiva queda en el gateway.",
-            "La confianza es una señal del modelo, no una garantía.",
+            ("Formulario y widgets", "2"),
+            ("Submit 0/1", "2"),
+            ("Separación UI/inferencia", "2"),
+            ("Resultado y error", "2"),
+            ("Tests y QA", "2"),
         ],
         [
-            "semana5/modules/05-streamlit-basic-model-ui/exercises/01-ui-form-contract/problem/README.md",
-            "semana5/modules/05-streamlit-basic-model-ui/guides/class-1-practices.md",
+            "cd semana5/modules/05-streamlit-basic-model-ui/exercises/01-churn-streamlit/problem/starter",
+            "uv sync",
+            "uv run python -m pytest -q",
+            "uv run ruff check app.py src tests",
+            "uv run ruff format --check app.py src tests",
+            "uv run streamlit run app.py",
+        ],
+        [
+            "No añadas session_state, caché, entrenamiento ni persistencia.",
+            (
+                "El patrón formulario-submit-inferencia será el puente conceptual a "
+                "la segunda práctica."
+            ),
+        ],
+        [
+            "semana5/modules/05-streamlit-basic-model-ui/exercises/01-churn-streamlit/README.md",
+            "semana5/modules/05-streamlit-basic-model-ui/exercises/01-churn-streamlit/problem/starter/README.md",
         ],
     ),
     assignment(
         5,
         2,
-        "Primera interfaz Streamlit del modelo",
-        "Implementar formulario, gateway y resultado visible",
-        "2 horas",
-        "Parejas, taller sobre starter",
-        "Assignment 5.1 y gateway preparado",
+        "Del bundle S4 al frontal Wine",
+        "Implementar el formulario y la salida sobre el bundle real de S4",
+        "120 min",
+        "Parejas, taller guiado sobre starter",
+        "Bundle Wine de S4 válido y starter de la práctica",
         (
-            "Completar una app Streamlit minima que consuma el gateway de S4, "
-            "presente una prediccion y traduzca un fallo de inferencia a un mensaje "
-            "comprensible."
+            "Completar collect_values() y render_prediction() para conectar los "
+            "once campos preparados con el gateway y el bundle real de S4."
         ),
         [
-            "El starter trae contrato, gateway demo, adaptador del bundle y presentacion minima; el foco es app.py.",
-            "La solucion de S5 se convertira literalmente en el punto de partida de S6.",
-            "DemoGateway permite trabajar sin un binario; MODEL_UI_BUNDLE activa el bundle real.",
-            "La app no debe importar ni llamar predict_proba directamente.",
+            (
+                "El runtime exige MODEL_UI_BUNDLE apuntando a un directorio real con "
+                "manifest.json y model.joblib; no existe alternativa de ejecución."
+            ),
+            (
+                "El starter ya incluye completos los once campos de FIELD_SPECS; no "
+                "se rediseña el esquema."
+            ),
+            (
+                "Un único st.form y st.form_submit_button garantizan cero llamadas al "
+                "editar y una llamada al enviar."
+            ),
+            (
+                "La única frontera permitida es gateway.predict(values); los dobles "
+                "se usan exclusivamente dentro de tests/."
+            ),
         ],
         [
-            "exercises/02-first-streamlit/problem/starter/",
-            "Tabla del formulario de la practica 5.1",
-            "DemoGateway o bundle de S4",
-            "Streamlit instalado como extra de app",
+            "semana5/modules/05-streamlit-basic-model-ui/exercises/02-first-streamlit/problem/starter/",
+            "Bundle real de S4 con manifest.json y model.joblib",
+            "FIELD_SPECS completo, gateway de bundle y fakes confinados a tests/",
         ],
         [
-            ("Lee el starter", "Ejecuta los tests y localiza FEATURE_FIELDS, collect_values, gateway.predict y render_prediction."),
-            ("Implementa el formulario", "Dibuja los once number_input dentro de st.form y devuelve submitted junto con un diccionario de nombres canonicos."),
-            ("Conecta el gateway", "Invoca `predict(values)` solo cuando el formulario se envia; no copies preprocesado ni carga de joblib."),
-            ("Presenta el resultado", "Muestra categoria, confianza, model_version y preprocessing_version con copy corto y honesto."),
-            ("Gestiona un error", "Simula bundle ausente o entrada invalida y muestra un error util sin traceback para la persona."),
-            ("Documenta el limite", "Anota que el resultado se pierde o se reconstruye tras un rerun y por que S6 necesitara estado."),
+            (
+                "Localiza y valida el bundle · 0–15 min",
+                (
+                    "Define MODEL_UI_BUNDLE y verifica que el directorio real contiene "
+                    "manifest.json y model.joblib."
+                ),
+            ),
+            (
+                "Construye los widgets · 15–35 min",
+                (
+                    "Implementa collect_values() generando los once widgets desde "
+                    "FIELD_SPECS, sin cambiar nombres, orden ni límites."
+                ),
+            ),
+            (
+                "Completa formulario y submit · 35–55 min",
+                (
+                    "Agrupa los widgets en un st.form y devuelve el estado de "
+                    "st.form_submit_button junto con values."
+                ),
+            ),
+            (
+                "Revisa la frontera gateway · 55–75 min",
+                (
+                    "Comprueba cero llamadas al editar y una al enviar, exclusivamente "
+                    "mediante gateway.predict(values)."
+                ),
+            ),
+            (
+                "Presenta el resultado · 75–90 min",
+                (
+                    "Implementa render_prediction() con quality_band, confidence, "
+                    "model_version y "
+                    "preprocessing_version con copy honesto."
+                ),
+            ),
+            (
+                "Prueba bundle ausente · 90–105 min",
+                (
+                    "Comprueba la frontera segura ante bundle ausente o inválido, sin "
+                    "rutas, traceback ni detalle interno."
+                ),
+            ),
+            (
+                "Ejecuta tests y QA · 105–115 min",
+                (
+                    "Deja 27 pruebas verdes y registra los cuatro casos con bundle "
+                    "real, edición, submit y bundle ausente."
+                ),
+            ),
+            (
+                "Documenta ejecución y límites · 115–120 min",
+                (
+                    "Documenta el comando de arranque, la configuración del bundle y "
+                    "los límites que se abordarán en S6."
+                ),
+            ),
         ],
         [
-            ("App funcional", "Formulario completo y boton que ejecuta la inferencia."),
-            ("Resultado", "Categoria, confianza y versiones visibles."),
-            ("Error", "Caso de fallo reproducible con mensaje y siguiente accion."),
-            ("Evidencia", "Captura o registro de la app y nota de dos limites para S6."),
+            (
+                "Código",
+                "app.py con collect_values() y render_prediction() completas.",
+            ),
+            (
+                "Configuración del bundle",
+                (
+                    "Comando de MODEL_UI_BUNDLE y ruta esperada documentados sin "
+                    "publicar el binario."
+                ),
+            ),
+            (
+                "Evidencias",
+                "Capturas o registro equivalente con bundle real y bundle ausente.",
+            ),
+            (
+                "Pruebas y QA",
+                "Salida de las 27 pruebas verdes y matriz de cuatro casos.",
+            ),
         ],
         [
-            "La app arranca con DemoGateway desde checkout limpio.",
-            "Los once widgets respetan nombres y rangos del contrato.",
-            "La inferencia solo ocurre al enviar el formulario.",
-            "La pantalla muestra categoria, confianza y versiones.",
-            "No hay logica de entrenamiento, predict_proba ni joblib.load en app.py.",
+            "Con MODEL_UI_BUNDLE válido aparecen los once widgets de FIELD_SPECS.",
+            "Editar causa cero llamadas; un submit causa una llamada a gateway.predict(values).",
+            "La pantalla muestra quality_band, confidence, model_version y preprocessing_version.",
+            "Bundle ausente o inválido e inferencia inválida producen errores seguros.",
+            "Las 27 pruebas y los cuatro casos de QA quedan verdes.",
         ],
-        [("Formulario y contrato", "3"), ("Integracion del gateway", "2"), ("Presentacion y error", "3"), ("Evidencia y limite", "2")],
         [
-            "cd modules/05-streamlit-basic-model-ui/exercises/02-first-streamlit/problem/starter",
+            ("Bundle real y contrato Wine", "2"),
+            ("Formulario y submit", "2"),
+            ("Frontera gateway", "2"),
+            ("Resultado y error", "2"),
+            ("Reproducibilidad, tests y QA", "2"),
+        ],
+        [
+            "cd semana5/modules/05-streamlit-basic-model-ui/exercises/02-first-streamlit/problem/starter",
             "uv sync",
-            "uv run pytest",
-            "uv run ruff check src tests",
-            "uv run ruff format --check src tests",
+            "$env:MODEL_UI_BUNDLE = 'RUTA_AL_BUNDLE_DE_S4'",
+            "uv run python -m pytest -q",
+            "uv run ruff check app.py src tests",
+            "uv run ruff format --check app.py src tests",
             "uv run --with 'streamlit>=1.40,<2.0' streamlit run app.py",
         ],
         [
-            "No añadas aun st.session_state, st.cache_resource ni callbacks complejos.",
-            "No subas un modelo binario al repositorio.",
-            "La app debe quedar ejecutable para que S6 pueda refactorizarla, no reemplazarla.",
+            (
+                "Sin joblib ni preprocesado en app.py; state, caché, telemetría y "
+                "persistencia quedan para S6."
+            ),
         ],
         [
             "semana5/modules/05-streamlit-basic-model-ui/exercises/02-first-streamlit/README.md",
-            "semana5/modules/05-streamlit-basic-model-ui/guides/class-2-workshop.md",
         ],
     ),
     assignment(
@@ -947,7 +1406,7 @@ ASSIGNMENTS = [
             "persona durante una inferencia."
         ),
         [
-            "S6 no rediseña el formulario: conserva FEATURE_FIELDS, collect_values y el gateway de S5.",
+            "S6 no rediseña el formulario: conserva el contrato Wine, collect_values y el gateway de S5.",
             "Una variable local puede desaparecer al rerun; session_state conserva estado de sesion, no sustituye un almacen de datos.",
             "cache_resource es para el gateway o bundle reutilizable, no para respuestas personales.",
             "Una respuesta valida pero lenta sigue siendo success con una señal tecnica.",
@@ -1061,6 +1520,202 @@ ASSIGNMENTS = [
             "semana6/modules/06-ux-model-consumption/guides/class-2-workshop.md",
         ],
     ),
+    assignment(
+        7,
+        1,
+        "De curl a un cliente Python",
+        "Consumir una API de predicción como caja negra",
+        "75-90 min",
+        "Parejas, assignment posterior a la clase 1",
+        "Microejercicios HTTP/JSON y API local preparada",
+        (
+            "Observar el contrato de una API de predicción y completar un cliente "
+            "Python que trate de forma explícita petición, status, transporte y JSON."
+        ),
+        [
+            "La API de bombas se entrega como caja negra: se ejecuta, pero no se modifica.",
+            "El recorrido comienza con curl y termina con cinco pruebas del cliente en verde.",
+            "Postman es una ampliación opcional y no forma parte de la calificación.",
+        ],
+        [
+            "exercises/02-api-client-lab/problem/starter/client.py con los marcadores 3-6",
+            "Cinco pruebas con sesiones y respuestas controladas",
+            "API local y muestras JSON válidas e inválidas",
+            "Guía curl con variantes Bash y PowerShell",
+        ],
+        [
+            (
+                "Prepara dos terminales",
+                "Desde la raíz del módulo sincroniza el entorno, arranca la API en la primera terminal y conserva la segunda para observación y tests.",
+            ),
+            (
+                "Observa el contrato",
+                "Comprueba GET /health, un POST válido y un POST inválido; registra 200, 200 y 422, request_id y campo rechazado.",
+            ),
+            (
+                "Ejecuta el estado inicial",
+                "Lanza la suite del starter y confirma cinco pruebas rojas por el NotImplementedError intencional.",
+            ),
+            (
+                "Implementa la petición",
+                "Usa POST /v1/predictions, json=payload, Accept application/json y timeout explícito sin cambiar la firma pública.",
+            ),
+            (
+                "Traduce fallos y valida",
+                "Aplica raise_for_status; traduce HTTP, timeout y ConnectionError a PredictionClientError; decodifica JSON y exige un objeto.",
+            ),
+            (
+                "Verifica y reúne evidencia",
+                "Obtén cinco pruebas verdes y conserva las tres respuestas curl y una explicación sobre el reintento de POST.",
+            ),
+        ],
+        [
+            ("Cliente", "starter/client.py completado sin modificar la API de caja negra."),
+            ("Tests", "Salida final con cinco pruebas verdes."),
+            (
+                "Evidencia HTTP",
+                "Salud, POST 200 y POST 422 con status, request_id y campo rechazado.",
+            ),
+            (
+                "Decisión",
+                "Una frase que justifique por qué no se reintenta un POST ciegamente.",
+            ),
+        ],
+        [
+            "La petición usa la ruta, cuerpo JSON, cabecera Accept y timeout indicados.",
+            "raise_for_status impide interpretar un 422 como una predicción correcta.",
+            "HTTPError conserva el status; timeout y ConnectionError se distinguen.",
+            "Una respuesta 2xx solo se acepta si contiene un objeto JSON.",
+            "Las cinco pruebas pasan y la evidencia contiene 200, 200 y 422.",
+            "No se modifica el servidor ni se copia la solución docente.",
+        ],
+        [
+            ("Petición HTTP", "3"),
+            ("Tratamiento de errores", "2"),
+            ("Validación de respuesta", "2"),
+            ("Tests y evidencias", "2"),
+            ("Explicación y reproducibilidad", "1"),
+        ],
+        [
+            "# Terminal 1 - servidor\ncd semana7/modules/07-http-rest-clients\nuv sync\nuv run python examples/pump-maintenance-api/server.py",
+            (
+                "# Terminal 2 - Bash o Git Bash\n"
+                "cd semana7/modules/07-http-rest-clients\n"
+                "BASE_URL=http://127.0.0.1:8000\n"
+                "curl -i \"$BASE_URL/health\"\n"
+                "curl -i -X POST \"$BASE_URL/v1/predictions\" \\\n"
+                "  -H \"Accept: application/json\" \\\n"
+                "  -H \"Content-Type: application/json\" \\\n"
+                "  --data-binary @examples/pump-maintenance-api/samples/prediction-valid.json\n"
+                "# Repite con prediction-invalid.json"
+            ),
+            (
+                "# Terminal 2 - tests\n"
+                "uv run python -m unittest discover "
+                "-s exercises/02-api-client-lab/problem/starter -p \"test_*.py\" -v"
+            ),
+        ],
+        [
+            "No abras ni modifiques el servidor; en S7 se observa como caja negra.",
+            "No implementes FastAPI ni autenticación: el backend comienza en S8.",
+            "No uses Wine, Streamlit ni HttpInferenceGateway; pertenecen a la Clase 2.",
+            "PowerShell: usa curl.exe y los comandos equivalentes de examples/curl/README.md.",
+        ],
+        [
+            "semana7/modules/07-http-rest-clients/exercises/02-api-client-lab/problem/README.md",
+            "semana7/modules/07-http-rest-clients/guides/class-1-practices.md",
+            "semana7/modules/07-http-rest-clients/examples/curl/README.md",
+        ],
+    ),
+    assignment(
+        7,
+        2,
+        "De gateway local a cliente HTTP",
+        "Consumir la API Wine sin alterar la experiencia construida en S6",
+        "120 min",
+        "Parejas, taller sobre starter",
+        "Assignment 6.2 y app robusta de S6",
+        (
+            "Implementar HttpInferenceGateway para que la app robusta de S6 "
+            "consuma la API Wine local por HTTP, manteniendo su interfaz y su "
+            "comportamiento observable."
+        ),
+        [
+            "Conserva la UI, PredictionController, estado de sesion, presentacion y telemetria de S6; sustituye solo el gateway local.",
+            "La API Wine local se entrega como caja negra: observa su contrato, pero no abras ni modifiques el servidor.",
+            "El contrato de red usa POST /v1/predictions y un cuerpo JSON con la forma {\"features\": ...}.",
+            "En esta semana implementas el cliente; el servidor de S8 queda como siguiente frontera del proyecto.",
+        ],
+        [
+            "exercises/03-wine-http-gateway/problem/starter/ con la app de S6 y TODOs del cliente",
+            "Tests con sesiones y respuestas controladas como especificacion ejecutable",
+            "API Wine local preparada como caja negra docente",
+            "PredictionPayload y errores de dominio heredados de S6",
+        ],
+        [
+            (
+                "Mapea el contrato",
+                "Identifica URL, metodo, cabecera Accept, cuerpo, respuesta valida y significado de 422 y 503 antes de completar codigo.",
+            ),
+            (
+                "Implementa la peticion",
+                "Completa HttpInferenceGateway con POST /v1/predictions, json={\"features\": values}, Accept application/json y un timeout explicito.",
+            ),
+            (
+                "Valida la respuesta",
+                "Decodifica el JSON de exito y validalo con PredictionPayload; rechaza JSON mal formado o un payload incompatible.",
+            ),
+            (
+                "Traduce los fallos",
+                "Convierte 422, 503, timeout y error de conexion en errores de dominio que el controlador de S6 ya sabe presentar.",
+            ),
+            (
+                "Cablea la app",
+                "Lee MODEL_API_URL, crea el gateway como recurso reutilizable e inyectalo en el mismo controlador sin duplicar estado ni telemetria.",
+            ),
+            (
+                "Reune evidencia",
+                "Ejecuta tests y Ruff; arranca la API caja negra y la app, y registra un exito y un fallo recuperable sin mostrar trazas ni features.",
+            ),
+        ],
+        [
+            ("Cliente HTTP", "HttpInferenceGateway y sus tests de contrato, salida y transporte."),
+            ("Wiring", "Diff pequeno que conserva UI, controlador, estado y telemetria de S6."),
+            ("Comprobaciones", "Salida de Pytest y Ruff desde la raiz del modulo."),
+            ("Recorrido", "Evidencia de la app conectada a la API local y de un fallo traducido."),
+        ],
+        [
+            "La app conserva el formulario, PredictionController, estados, retry, clear y telemetria agregada de S6.",
+            "La peticion usa POST /v1/predictions, json={\"features\": ...}, Accept application/json y timeout explicito.",
+            "Toda respuesta 2xx se valida con PredictionPayload antes de llegar al controlador.",
+            "422, 503, timeout y conexion se traducen sin filtrar traceback, cuerpo interno ni features.",
+            "MODEL_API_URL configura el destino y la app funciona contra la API Wine local preparada.",
+            "Los tests del cliente no dependen de un servidor real y la evidencia incluye la comprobacion integrada.",
+        ],
+        [
+            ("Contrato y peticion", "2"),
+            ("Validacion de respuesta", "2"),
+            ("Errores y resiliencia", "2"),
+            ("Wiring y continuidad", "2"),
+            ("Tests y evidencia", "2"),
+        ],
+        [
+            "# Terminal 1 - servidor\ncd semana7/modules/07-http-rest-clients\nuv sync\nuv run python examples/wine-quality-api/server.py",
+            "# Terminal 2 - app\ncd semana7/modules/07-http-rest-clients/exercises/03-wine-http-gateway/problem/starter\nuv sync --extra app\nuv run pytest -q\nuv run ruff check src tests app.py\nuv run ruff format --check src tests app.py",
+            "# Bash\nMODEL_API_URL=http://127.0.0.1:8000 uv run streamlit run app.py",
+            "# PowerShell\n$env:MODEL_API_URL=\"http://127.0.0.1:8000\"; uv run streamlit run app.py",
+        ],
+        [
+            "No implementes un backend: la API Wine es una caja negra y el servidor de S8 queda fuera de alcance.",
+            "No anadas autenticacion ni secretos; esta practica solo configura una URL local.",
+            "No registres valores de features ni cuerpos de respuesta en la telemetria.",
+            "No cambies el contrato de PredictionPayload para adaptar una respuesta incorrecta.",
+        ],
+        [
+            "semana7/modules/07-http-rest-clients/exercises/03-wine-http-gateway/problem/starter/README.md",
+            "semana7/modules/07-http-rest-clients/guides/class-2-workshop.md",
+        ],
+    ),
 ]
 
 
@@ -1092,7 +1747,22 @@ def generate(assignment_data: Assignment) -> Path:
 
 
 def main() -> None:
-    for assignment_data in ASSIGNMENTS:
+    parser = argparse.ArgumentParser(description="Generate assignment handouts")
+    parser.add_argument(
+        "--week",
+        type=int,
+        help="Generate only the assignments for this week",
+    )
+    args = parser.parse_args()
+
+    selected = (
+        ASSIGNMENTS
+        if args.week is None
+        else [item for item in ASSIGNMENTS if item.week == args.week]
+    )
+    if not selected:
+        parser.error(f"no assignments found for week {args.week}")
+    for assignment_data in selected:
         print(generate(assignment_data))
 
 

@@ -55,6 +55,7 @@ adaptada al proyecto incremental de esta asignatura.
 | S4 | [Assignment 4.1](assignments/semana04_clase01_assignment.pdf) | [Assignment 4.2](assignments/semana04_clase02_assignment.pdf) |
 | S5 | [Assignment 5.1](assignments/semana05_clase01_assignment.pdf) | [Assignment 5.2](assignments/semana05_clase02_assignment.pdf) |
 | S6 | [Assignment 6.1](assignments/semana06_clase01_assignment.pdf) | [Assignment 6.2](assignments/semana06_clase02_assignment.pdf) |
+| S7 | [Assignment 7.1](assignments/semana07_clase01_assignment.pdf) | [Assignment 7.2](assignments/semana07_clase02_assignment.pdf) |
 
 El PDF es la guía de trabajo para el alumno; el `README.md`, el `problem/`,
 los tests y los `guides/` de cada semana siguen siendo la fuente de detalle

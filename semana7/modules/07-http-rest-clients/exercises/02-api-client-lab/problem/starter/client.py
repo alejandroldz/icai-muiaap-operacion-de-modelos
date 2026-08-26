@@ -1,0 +1,30 @@
+"""Starter del cliente HTTP. Completa los TODO sin modificar la API."""
+
+from __future__ import annotations
+
+from typing import Any
+
+# El TODO de la práctica usará este cliente para realizar la petición HTTP.
+import requests  # noqa: F401
+
+
+class PredictionClientError(RuntimeError):
+    def __init__(self, message: str, *, status_code: int | None = None):
+        self.status_code = status_code
+        super().__init__(message)
+
+
+def request_prediction(
+    payload: dict[str, Any],
+    *,
+    base_url: str = "http://127.0.0.1:8000",
+    timeout: float = 5.0,
+    session: Any | None = None,
+) -> dict[str, Any]:
+    """Envía una predicción y devuelve un objeto JSON de respuesta."""
+    # TODO 3: selecciona `session` o `requests` y envía POST con `json=`,
+    # `Accept` y `timeout`. Comprueba los argumentos con test_client.py.
+    # TODO 4: llama a `raise_for_status()` y conserva el status de HTTPError.
+    # TODO 5: traduce Timeout y ConnectionError a PredictionClientError.
+    # TODO 6: convierte la respuesta con `.json()` y exige un diccionario.
+    raise NotImplementedError("Completa los TODO 3–6 del laboratorio")
