@@ -105,9 +105,14 @@ con el siguiente ciclo:
 
 #### S1 — Operación observable
 
-En la clase 1 prepara el entorno: instala `uv`, Git y, si usas Windows, Git
-Bash; después crea y verifica la cuenta de Databricks Free Edition. Entrega
-versiones, confirmación de acceso y cualquier bloqueo sin compartir secretos.
+En la clase 1 prepara el entorno: instala `uv` con Python 3.12,
+Git y, si usas Windows, Git Bash; configura tu identidad Git, confirma tu
+cuenta GitHub y el acceso al repositorio, y verifica Databricks Free Edition
+con el Git Folder y el *compute* serverless. Usa un navegador actualizado, un
+editor con soporte para notebooks, `curl` y Postman para la práctica de HTTP.
+Docker y Compose se revisan de forma anticipada, sin que su instalación bloquee
+esta entrega. Entrega versiones, accesos y cualquier bloqueo sin compartir
+secretos.
 
 En la clase 2 trabaja en Databricks Free Edition con modo determinista cuando
 sea posible. Ejecuta el notebook de tracking, registra parámetros, métricas,

@@ -535,63 +535,206 @@ ASSIGNMENTS = [
         1,
         1,
         "Configuracion inicial del entorno",
-        "Dejar listo el equipo para la primera practica tecnica",
-        "45-60 min antes de la clase 2",
+        "Herramientas y accesos para S1-S7; Docker preparado para el bloque posterior",
+        "90 min; Docker no bloqueante",
         "Individual",
-        "Ordenador personal y acceso a internet",
+        "Ordenador personal, internet y permisos de instalacion",
         (
-            "Instalar y verificar uv, Git y, si corresponde, Git Bash. Crear "
-            "ademas una cuenta de Databricks Free Edition para poder empezar la "
-            "practica de MLflow en la clase 2."
+            "Preparar y verificar las herramientas y accesos necesarios para S1-S7: "
+            "uv con Python 3.12, Git, GitHub, un editor con soporte para "
+            "notebooks, Databricks Free Edition, curl y Postman. Revisar ademas Docker "
+            "con Compose para anticipar el bloque posterior, sin que condicione "
+            "esta entrega."
         ),
         [
-            "Esta practica es de puesta a punto: no exige analizar un notebook ni entregar una ficha de riesgos.",
-            "Si una herramienta ya esta instalada, conserva la instalacion y verifica su version.",
-            "En Windows, Git Bash se instala como parte de Git for Windows; en macOS y Linux se usa la terminal del sistema.",
-            "En Databricks selecciona Free Edition, no Free Trial, y no introduzcas datos de pago.",
+            (
+                "Esta practica es de puesta a punto: no exige analizar un notebook "
+                "ni entregar una ficha de riesgos."
+            ),
+            (
+                "Si una herramienta ya esta instalada, conserva la instalacion y "
+                "verifica su version."
+            ),
+            (
+                "En Windows, Git Bash se instala con Git for Windows; en macOS y "
+                "Linux se usa la terminal del sistema."
+            ),
+            (
+                "En Databricks selecciona Free Edition, no Free Trial, y no "
+                "introduzcas datos de pago."
+            ),
+            (
+                "Postman Desktop es la opcion recomendada; Postman Web necesita "
+                "Desktop Agent para acceder a servicios en localhost."
+            ),
+            (
+                "Para S7 verifica curl; en Windows usa curl.exe para evitar el alias "
+                "de PowerShell."
+            ),
+            (
+                "Docker y Compose son preparacion anticipada no bloqueante para "
+                "esta entrega."
+            ),
         ],
         [
-            "Documentacion oficial de instalacion de uv",
+            "Documentacion oficial de uv y Python administrado con uv",
             "Instalador oficial de Git; Git for Windows incluye Git Bash",
+            "Cuenta GitHub y acceso al repositorio de la asignatura",
             "Pagina oficial de alta de Databricks Free Edition",
-            "Una terminal local y un navegador actualizado",
+            "Navegador actualizado y editor con soporte Python/Jupyter; VS Code es la opcion recomendada",
+            "curl del sistema y aplicacion de escritorio Postman o acceso a Postman Web",
+            "Documentacion de Docker Desktop o Docker Engine y del plugin Compose",
         ],
         [
-            ("Comprueba el punto de partida", "Abre una terminal y verifica si ya responden uv --version y git --version. En Windows, abre tambien Git Bash y ejecuta bash --version."),
-            ("Instala uv", "Sigue el instalador oficial para tu sistema operativo. Cierra y abre de nuevo la terminal si el comando no aparece en PATH."),
-            ("Instala Git y Git Bash", "En Windows usa Git for Windows y confirma que Git Bash aparece en el menu de aplicaciones. En macOS o Linux instala Git y verifica la terminal disponible."),
-            ("Crea el workspace", "Registra una cuenta de Databricks Free Edition, completa el alta y comprueba que puedes entrar en tu workspace sin iniciar un trial de pago."),
-            ("Prepara la evidencia", "Anota sistema operativo, versiones de uv y Git, resultado de bash --version cuando aplique y la confirmacion de acceso al workspace. Oculta correos, tokens y datos personales."),
+            (
+                "Comprueba el equipo",
+                (
+                    "Anota sistema operativo y arquitectura. Confirma que dispones de "
+                    "un navegador actualizado, un editor de codigo y permisos para "
+                    "instalar software."
+                ),
+            ),
+            (
+                "Instala uv y Python",
+                (
+                    "Instala uv y prepara Python 3.12 administrado con uv. Verifica "
+                    "ambos desde una terminal nueva."
+                ),
+            ),
+            (
+                "Prepara Git",
+                (
+                    "Instala Git y, en Windows, Git Bash. Configura user.name y "
+                    "user.email con la identidad que usaras en la asignatura. En "
+                    "Windows verifica tambien uv y Git dentro de Git Bash. Enmascara "
+                    "el correo en la evidencia."
+                ),
+            ),
+            (
+                "Verifica GitHub",
+                (
+                    "Inicia sesion y confirma que puedes abrir el repositorio de la "
+                    "asignatura y crear un fork. No compartas tokens ni credenciales."
+                ),
+            ),
+            (
+                "Prepara editor y clientes HTTP",
+                (
+                    "Configura un editor que abra Python, TOML, Markdown y notebooks. "
+                    "Si usas VS Code, instala las extensiones Python y Jupyter. Verifica "
+                    "curl (curl.exe en Windows) y envia un GET con Postman."
+                ),
+            ),
+            (
+                "Verifica Databricks",
+                (
+                    "Crea el workspace Free Edition, importa semana1 como Git Folder, "
+                    "conecta compute serverless y ejecuta la celda inicial de la "
+                    "practica hasta leer semana1/data/raw/WineQT.csv."
+                ),
+            ),
+            (
+                "Anticipa Docker y Compose",
+                (
+                    "Comprueba la compatibilidad del equipo y anota un estado: "
+                    "verificado, pendiente o bloqueado. Si lo instalas, verifica Docker "
+                    "Engine y Compose. La instalacion no bloquea S1.1."
+                ),
+            ),
+            (
+                "Prepara la evidencia",
+                (
+                    "Resume versiones, accesos y estado de Docker. Si algo falla, "
+                    "incluye comando, error y siguiente accion, sin datos personales."
+                ),
+            ),
         ],
         [
-            ("Checklist de herramientas", "Sistema operativo, version de uv, version de Git y version de Bash cuando corresponda."),
-            ("Acceso a Databricks", "Confirmacion de entrada al workspace de Free Edition, sin credenciales ni datos de pago."),
-            ("Incidencias", "Si algo falla, mensaje de error, paso intentado y siguiente accion; no basta con decir que no funciona."),
+            (
+                "Entorno S1-S7",
+                (
+                    "Sistema operativo; versiones de uv, Python, Git y Bash cuando "
+                    "aplique; navegador, editor, curl y Postman disponibles."
+                ),
+            ),
+            (
+                "Git y GitHub",
+                (
+                    "Identidad Git configurada con correo enmascarado, acceso al "
+                    "repositorio y posibilidad de crear un fork."
+                ),
+            ),
+            (
+                "Databricks",
+                (
+                    "Acceso a Free Edition y smoke test del Git Folder, compute y "
+                    "dataset, sin credenciales ni datos de pago."
+                ),
+            ),
+            (
+                "Docker posterior",
+                (
+                    "Estado verificado, pendiente o bloqueado; versiones de Docker y "
+                    "Compose solo si ya estan instalados."
+                ),
+            ),
+            (
+                "Incidencias",
+                (
+                    "Mensaje de error, paso intentado y siguiente accion; no basta con "
+                    "indicar que no funciona."
+                ),
+            ),
         ],
         [
             "uv --version devuelve una version y el comando funciona en una terminal nueva.",
-            "git --version devuelve una version; en Windows Git Bash tambien abre y ejecuta bash --version.",
-            "La cuenta de Databricks permite entrar en un workspace Free Edition.",
-            "La evidencia permite al docente identificar rapidamente quien esta bloqueado y por que.",
+            "Python 3.12 esta disponible y administrado con uv.",
+            "git --version funciona; en Windows Git Bash abre y ejecuta bash --version.",
+            "Git contiene user.name y user.email, y la evidencia no muestra el correo completo.",
+            "La cuenta GitHub permite acceder al repositorio y crear un fork.",
+            "Databricks abre el Git Folder y ejecuta la comprobacion inicial con compute serverless.",
+            "El editor abre codigo y notebooks; curl y Postman realizan una peticion local.",
+            "Docker figura como verificado, pendiente o bloqueado; no condiciona la entrega.",
             "No se entregan contrasenas, tokens, correos completos ni datos de pago.",
         ],
-        [("uv y verificacion", "3"), ("Git y Git Bash", "3"), ("Databricks Free Edition", "3"), ("Evidencia y seguridad", "1")],
         [
-            "Ejecutar uv --version.",
-            "Ejecutar git --version.",
-            "En Windows, abrir Git Bash y ejecutar bash --version.",
-            "Entrar en el workspace de Databricks Free Edition.",
+            ("uv y Python 3.12", "2"),
+            ("Git, GitHub e identidad", "2"),
+            ("Databricks y smoke test", "3"),
+            ("Editor, notebooks y clientes HTTP", "2"),
+            ("Evidencia y seguridad", "1"),
         ],
         [
-            "No instales todavia las dependencias del proyecto: la estructura y el entorno del repositorio se trabajaran en S2.",
+            "Ejecutar uv --version.",
+            "Ejecutar uv python install 3.12 y uv run --python 3.12 python --version.",
+            "Ejecutar git --version.",
+            "Ejecutar git config --global --get user.name y git config --global --get user.email.",
+            "En Windows, abrir Git Bash y ejecutar bash --version, git --version y uv --version.",
+            "Abrir el repositorio en GitHub y ejecutar git ls-remote https://github.com/ssillerom/icai-muiaap-operacion-de-modelos.git.",
+            "Ejecutar curl.exe --version en Windows o curl --version en macOS y Linux.",
+            "En Postman, enviar GET https://postman-echo.com/get y comprobar el estado 200.",
+            "En Databricks, abrir el Git Folder y ejecutar la celda inicial de la practica.",
+            "Opcional: ejecutar docker --version, docker compose version y docker run --rm hello-world.",
+        ],
+        [
+            "No instales globalmente MLflow, Pydantic, Pytest, Ruff, Streamlit, Gradio, Requests ni FastAPI: se gestionaran con uv o dentro de Databricks.",
+            "Docker y Compose se comprobaran de nuevo antes del bloque de contenedores; no instalarlos ahora no resta puntuacion.",
+            "La cuenta Postman solo es necesaria si se comparte un workspace; no necesitas Docker Hub, Databricks CLI ni Node.js para S1-S7.",
+            "Jupyter local solo es necesario si ejecutaras los notebooks fuera de Databricks; sus paquetes deben instalarse con uv en el proyecto.",
+            "En Windows, usa una ruta corta de trabajo, por ejemplo C:/src/operacion-modelos, para evitar limites de longitud.",
             "No selecciones Free Trial ni introduzcas tarjeta para esta asignatura.",
             "No compartas credenciales ni capturas con informacion personal visible.",
         ],
         [
             "uv: docs.astral.sh/uv/getting-started/installation/",
-            "Git: git-scm.com/install/",
-            "Git for Windows: gitforwindows.org/",
+            "Python con uv: docs.astral.sh/uv/guides/install-python/",
+            "Git: git-scm.com/install/ | Git for Windows: gitforwindows.org/",
+            "GitHub: docs.github.com/get-started/start-your-journey/creating-an-account-on-github",
             "Databricks Free Edition: docs.databricks.com/aws/en/getting-started/free-edition",
+            "Editor recomendado: code.visualstudio.com/download",
+            "curl: curl.se/download.html",
+            "Postman: postman.com/downloads/ | Echo: postman-echo.com/get",
+            "Docker y Compose: docs.docker.com/get-started/get-docker/ | docs.docker.com/compose/install/",
         ],
     ),
     assignment(

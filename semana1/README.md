@@ -15,9 +15,13 @@ unidades de evidencia de MLflow, riesgos iniciales y lectura crítica de un
 notebook heredado.
 
 El assignment de esta clase es preparar el entorno para la clase 2: instalar
-`uv`, Git y, en Windows, Git Bash si no están disponibles, y crear una cuenta
-de Databricks Free Edition. La evidencia son las versiones verificadas, el
-acceso al workspace y cualquier bloqueo documentado. La ficha de proyecto no
+`uv` con Python 3.12, Git y, en Windows, Git Bash; configurar la
+identidad Git; confirmar una cuenta GitHub y el acceso al repositorio; y crear
+una cuenta de Databricks Free Edition. El acceso se comprueba abriendo
+`semana1/` como Git Folder, conectando *compute* serverless y leyendo el dataset
+de la práctica. También se prepara un editor con soporte para notebooks, `curl`
+y Postman para la práctica de HTTP, y se registra de forma no bloqueante el
+estado de Docker y Compose para el bloque posterior. La ficha de proyecto no
 forma parte de este assignment.
 
 [Material de la clase 1](modules/01-mlflow-databricks-foundations/sessions/01-prototipo-a-operacion/README.md)
@@ -32,7 +36,7 @@ También se trabaja AgentOps/LLMOps con trazas y evaluación determinista.
 
 ## Prácticas y entregables
 
-- [Assignment de puesta a punto](../assignments/semana01_clase01_assignment.pdf): `uv`, Git, Git Bash en Windows y cuenta de Databricks Free Edition.
+- [Assignment de puesta a punto](../assignments/semana01_clase01_assignment.pdf): `uv`, Python 3.12, Git, GitHub, Git Bash en Windows, editor, `curl`, Postman, Databricks Free Edition y revisión anticipada de Docker.
 - [Práctica de ciclo de vida de ML](modules/01-mlflow-databricks-foundations/exercises/01_tracking_mlops/README.md): runs, gate, Registry y API local.
 - [Práctica de AgentOps y LLMOps](modules/01-mlflow-databricks-foundations/exercises/02_agent_llmops/README.md): trazas, evaluación y fallos controlados.
 - [Assignment técnico de la clase 2](../assignments/semana01_clase02_assignment.pdf): evidencia trazable de MLflow, AgentOps y API local.

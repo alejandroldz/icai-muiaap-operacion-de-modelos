@@ -26,10 +26,15 @@ clínico.
 ### Puesta a punto del entorno (20 min)
 
 El assignment de la clase 1 no pide todavía analizar el notebook ni completar
-una ficha de riesgos. Cada estudiante instala y verifica `uv`, Git y, si usa
-Windows, Git Bash. Después crea una cuenta de Databricks Free Edition y
-confirma que puede entrar en su workspace. Los problemas se documentan con el
-comando ejecutado y el mensaje de error, sin compartir credenciales.
+una ficha de riesgos. Cada estudiante instala y verifica `uv` con Python 3.12,
+Git y, si usa Windows, Git Bash; configura su identidad Git y
+confirma el acceso a GitHub y al repositorio. Después crea una cuenta de
+Databricks Free Edition, abre `semana1/` como Git Folder, conecta *compute*
+serverless y comprueba que puede leer el dataset. Prepara además un editor con
+soporte para notebooks, `curl` y Postman para la práctica de HTTP. También
+registra el estado de Docker y Compose para anticipar el bloque de contenedores,
+sin que su instalación bloquee S1.1. Los problemas se documentan con el comando
+ejecutado y el mensaje de error, sin compartir credenciales.
 
 ### Debrief (15 min)
 
