@@ -3,7 +3,7 @@
 # Este contrato se entrega ya decidido: no cambies ni los nombres ni el orden.
 import numpy as np
 import pandas as pd
-from .contracts import WineQualityRequest
+from model_inference.contracts import WineQualityRequest
 FEATURE_NAMES = (
     "fixed_acidity",
     "volatile_acidity",
@@ -41,9 +41,11 @@ class WineFeatures():
 
 
 def preprocess_wine_request(row) -> np.ndarray:
-    array = WineFeatures.as_vector(row)
-    WineQualityRequest.model_validate(array)
-    return array
+    wf = WineFeatures()
+    WineQualityRequest.model_validate(row[list(FEATURE_NAMES)].to_dict())
+    array = wf.as_vector(row=row)
+    
+    return array.reshape(1, -1)
     
     
     

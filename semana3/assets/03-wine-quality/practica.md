@@ -10,4 +10,4 @@ Pregunta 3
 - AsmaAttack
 
 Pregunta 4
-- Suponiendo que en alcohol hay un porcentaje del 0 al 100, y que en ph de 0 a 10, si pasamos datos con valores que no esten comprendidos en eso, seria inválido
+- Suponiendo que en alcohol hay un porcentaje del 0 al 100, y que en ph de 0 a 14, si pasamos datos con valores que no esten comprendidos en eso, seria inválido
