@@ -1,4 +1,5 @@
 import os
+from rich import print
 VALID_ENVIRONMENTS = {"dev", "pre", "pro"}
 def environment_message(environment: str) -> str:
     normalized = environment.strip().lower()
