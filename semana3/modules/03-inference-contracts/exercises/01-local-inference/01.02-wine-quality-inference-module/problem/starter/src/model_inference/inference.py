@@ -11,13 +11,21 @@ DEFAULT_MODEL_PATH =  Path(__file__).resolve().parents[2] / "models" / "wine_qua
 
 def load_wine_quality_model(path=DEFAULT_MODEL_PATH):
     model = joblib.load(path)
+    features = [
+        "fixed_acidity", "volatile_acidity", "citric_acid", "residual_sugar",
+        "chlorides", "free_sulfur_dioxide", "total_sulfur_dioxide", "density",
+        "ph", "sulphates", "alcohol"]
+    if model.get("feature_names") != features:
+        raise ValueError("Los feature_names del artefacto no coinciden con el contrato.")
+    if "estimator" not in model:
+        raise ValueError("El artefacto no contiene un clasificador compatible.")
     rfc: RandomForestClassifier = model["estimator"]
     return rfc
 
 
 def infer_wine_quality(model: RandomForestClassifier, row: np.ndarray):
-    row_preprocess = preprocess_wine_request(row=row)
-    prediction = model.predict(row_preprocess) 
-    proba = model.predict_proba(row_preprocess)
+    row_preprocess = preprocess_wine_request(row)
+    prediction = model.predict([row_preprocess.as_vector()])
+    proba = model.predict_proba([row_preprocess.as_vector()])
     return prediction, max(proba[0])
     

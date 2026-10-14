@@ -2,6 +2,7 @@
 
 # Implementa WineQualityRequest y WineQualityPrediction con Pydantic.
 # Revisa los campos de assets/inference_samples.csv y prohíbe columnas extra.
+from typing import Literal
 from pydantic import BaseModel, Field, ConfigDict
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -27,7 +28,7 @@ class WineQualityPrediction(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     sample_id: str = Field(min_length=1)
-    quality_band: str = Field()
+    quality_band: Literal["needs_review", "acceptable", "excellent"]
     confidence: float = Field(ge=0, le=1)
     model_version: str = Field(min_length=1)
     preprocessing_version: str
