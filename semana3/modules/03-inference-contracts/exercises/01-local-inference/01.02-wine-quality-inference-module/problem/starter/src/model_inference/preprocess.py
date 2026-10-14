@@ -2,8 +2,9 @@
 
 # Este contrato se entrega ya decidido: no cambies ni los nombres ni el orden.
 import numpy as np
-import pandas as pd
+
 from model_inference.contracts import WineQualityRequest
+
 FEATURE_NAMES = (
     "fixed_acidity",
     "volatile_acidity",
@@ -20,9 +21,12 @@ FEATURE_NAMES = (
 
 # Implementa WineFeatures y preprocess_wine_request(). El orden anterior debe
 # coincidir con el artefacto, no con un orden arbitrario del CSV.
-class WineFeatures():
+class WineFeatures:
+    def __init__(self, request: WineQualityRequest):
+        self.request = request
     
-    def as_vector(self, row: pd.Series):
+    def as_vector(self):
+        row = self.request
         return np.array([
             row.fixed_acidity,
             row.volatile_acidity,
@@ -35,23 +39,10 @@ class WineFeatures():
             row.ph,
             row.sulphates,
             row.alcohol
-        ])
+        ]).tolist()
         
 
 
 
-def preprocess_wine_request(row) -> np.ndarray:
-    wf = WineFeatures()
-    WineQualityRequest.model_validate(row[list(FEATURE_NAMES)].to_dict())
-    array = wf.as_vector(row=row)
-    
-    return array.reshape(1, -1)
-    
-    
-    
-if __name__ == '__main__':
-    csv_path = "../../assets/inference_samples.csv"
-    df = pd.read_csv(csv_path)
-    
-    for index, row in df.iterrows():
-        preprocess_wine_request(row)
+def preprocess_wine_request(request: WineQualityRequest) -> WineFeatures:
+    return WineFeatures(request)
