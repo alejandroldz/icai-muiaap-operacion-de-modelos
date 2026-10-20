@@ -34,7 +34,7 @@ def main():
 def predict_file(path: str, model_path: str = str(DEFAULT_MODEL_PATH)) -> list:
     file_path = Path(path)
     data = pd.read_csv(file_path)
-    model = load_wine_quality_model(model_path)
+    model, version = load_wine_quality_model(model_path)
     results = []
     for index, row in data.iterrows():
         row = row.to_dict()
@@ -46,7 +46,7 @@ def predict_file(path: str, model_path: str = str(DEFAULT_MODEL_PATH)) -> list:
                 "sample_id": sample_id,
                 "quality_band": predict[0],
                 "confidence": probabilities,
-                "model_version": "wine-quality-rf-v1",
+                "model_version": version,
                 "preprocessing_version": "wine-red-features-v1",
             }
             results.append(WineQualityPrediction.model_validate(result).model_dump())
