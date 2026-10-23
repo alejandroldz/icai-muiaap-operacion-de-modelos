@@ -28,6 +28,18 @@ def leer_argumentos(texto):
 
 
 # TODO: definir_tool() -> dict con la definicion de la tool, sacando "parameters" de PrestamoEntrada
+def definir_tool() -> dict:
+    tool_schema = {
+        "type": "function",
+        "function": {
+            "name": NOMBRE_TOOL,
+            "description": "Calcula el riesgo de impago de un prestamo",
+            "parameters": PrestamoEntrada,,
+        },
+    }
+    return tool_schema
+
 # TODO: ejecutar_tool(nombre, argumentos_json) -> dict con "ok" True/False
 #       (tool desconocida, JSON roto, datos invalidos o campos inventados -> ok False con el error)
+
 # TODO: responder(mensajes, llm) -> ChatSalida, con el bucle LLM -> tool -> LLM (maximo MAX_VUELTAS)
