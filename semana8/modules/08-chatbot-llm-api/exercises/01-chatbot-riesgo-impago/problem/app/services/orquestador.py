@@ -33,13 +33,29 @@ def definir_tool() -> dict:
         "type": "function",
         "function": {
             "name": NOMBRE_TOOL,
-            "description": "Calcula el riesgo de impago de un prestamo",
-            "parameters": PrestamoEntrada,,
+            "description": "Calcula el riesgo de impago de un prestamo, dado un conjunto de datos del solicitante.",
+            "parameters": PrestamoEntrada.model_json_schema()
         },
     }
     return tool_schema
 
 # TODO: ejecutar_tool(nombre, argumentos_json) -> dict con "ok" True/False
 #       (tool desconocida, JSON roto, datos invalidos o campos inventados -> ok False con el error)
-
+def ejecutar_tool(nombre: str, argumentos_json:str) ->dict:
+    if nombre != NOMBRE_TOOL:
+        return {"ok": False, "error": "Tool desconocida"}
+    argumentos = leer_argumentos(argumentos_json)
+    
+    try:
+        entrada = PrestamoEntrada.model_validate(argumentos.to_dict())
+    except ValidationError as e:
+        return {"ok": False, "error": f"Datos invalidos: {e}"}
+    
+    resultado = predecir(entrada)
+    
+    return {"ok": True, "resultado": resultado}
 # TODO: responder(mensajes, llm) -> ChatSalida, con el bucle LLM -> tool -> LLM (maximo MAX_VUELTAS)
+def responder(mensajes, llm) -> ChatSalida:
+    mensajes = [{"role": "system", "content": SISTEMA}]
+    for _ in range(MAX_VUELTAS):
+        respuesta = llm.completar(mensajes, [definir_tool()])
