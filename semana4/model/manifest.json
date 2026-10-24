@@ -1,7 +1,7 @@
 {
-    "schema_version" : "",
-    "model_version":"",
-    "preprocessing_version" : "",
+    "schema_version" : "wine-quality-bundle-v1",
+    "model_version":"wine-quality-rf-v1",
+    "preprocessing_version" : "wine-red-features-v1",
     "feature_names" : ["fixed_acidity",
         "volatile_acidity",
         "citric_acid",
@@ -14,15 +14,6 @@
         "sulphates",
         "alcohol"
     ],
-    "output_labels": ["good", "excellent", "needs_review"],
-    "estimator_type": {
-        "RandomForestClassifier" : {
-        "class_weight" : "balanced_subsample",
-        "max_depth" : 8,
-        "min_samples_leaf" : 2,
-        "n_estimators" : 200,
-        "random_state" : 42
-
-        }
-    }
+    "output_labels": ["needs_review", "acceptable", "excellent"],
+    "estimator_type": "RandomForestClassifier"
 }
