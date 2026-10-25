@@ -3,6 +3,11 @@
 from __future__ import annotations
 
 from model_ui.contracts import PredictionPayload, PredictionView, UserFacingError
+from model_ui.errors import (
+    ArtifactUnavailableError,
+    InferenceTimeoutError,
+    InputContractError,
+)
 from model_ui.policies import (
     DEFAULT_CONFIDENCE_POLICY,
     DEFAULT_LATENCY_POLICY,
@@ -10,13 +15,6 @@ from model_ui.policies import (
     LatencyPolicy,
     classify_confidence,
     classify_latency,
-)
-
-from model_ui.errors import (
-    InputContractError,
-    ArtifactUnavailableError,
-    InferenceTimeoutError,
-    BackendInferenceError,
 )
 
 QUALITY_LABELS = {
@@ -62,18 +60,20 @@ def build_prediction_view(
     latency_policy: LatencyPolicy = DEFAULT_LATENCY_POLICY,
 ) -> PredictionView:
     """TODO: construye la vista con etiquetas, confianza, latencia y versiones."""
+    confidence_level = classify_confidence(prediction.confidence, confidence_policy)
+    latency_status = classify_latency(latency_ms, latency_policy)
 
     return PredictionView(
         quality_band=prediction.quality_band,
         quality_label=QUALITY_LABELS[prediction.quality_band],
         confidence=prediction.confidence,
-        confidence_level=classify_confidence(prediction.confidence, confidence_policy),
-        confidence_label=CONFIDENCE_COPY[classify_confidence(prediction.confidence, confidence_policy)][0],
-        confidence_message=CONFIDENCE_COPY[classify_confidence(prediction.confidence, confidence_policy)][1],
+        confidence_level=confidence_level,
+        confidence_label=CONFIDENCE_COPY[confidence_level][0],
+        confidence_message=CONFIDENCE_COPY[confidence_level][1],
         latency_ms=latency_ms,
-        latency_status=classify_latency(latency_ms, latency_policy),
-        latency_label=LATENCY_COPY[classify_latency(latency_ms, latency_policy)][0],
-        latency_message=LATENCY_COPY[classify_latency(latency_ms, latency_policy)][1],
+        latency_status=latency_status,
+        latency_label=LATENCY_COPY[latency_status][0],
+        latency_message=LATENCY_COPY[latency_status][1],
         model_version=prediction.model_version,
         preprocessing_version=prediction.preprocessing_version,
     )
@@ -85,17 +85,29 @@ def to_user_facing_error(error: Exception, request_id: str) -> UserFacingError:
         code = "invalid_input"
         title = "Datos de entrada no válidos"
         message = "Los datos introducidos no cumplen los requisitos del modelo."
-        recovery = "Revisa los campos del formulario y asegúrate de que cumplen los rangos exigidos."
+        recovery = (
+            "Revisa los campos del formulario y asegúrate de que cumplen "
+            "los rangos exigidos."
+        )
     elif isinstance(error, ArtifactUnavailableError):
         code = "artifact_unavailable"
         title = "Modelo no disponible"
-        message = "El servicio o artefacto del modelo no se encuentra disponible actualmente."
-        recovery = "Vuelve a intentarlo pasados unos minutos o contacta con soporte si persiste."
+        message = (
+            "El servicio o artefacto del modelo no se encuentra disponible "
+            "actualmente."
+        )
+        recovery = (
+            "Vuelve a intentarlo pasados unos minutos o contacta con soporte "
+            "si persiste."
+        )
     elif isinstance(error, InferenceTimeoutError):
         code = "timeout"
         title = "Tiempo de espera superado"
         message = "La inferencia tardó más tiempo del límite permitido para la demo."
-        recovery = "Prueba a reintentar la solicitud para comprobar si el servicio responde."
+        recovery = (
+            "Prueba a reintentar la solicitud para comprobar si el servicio "
+            "responde."
+        )
     else:
         code = "prediction_error"
         title = "Error de inferencia"
