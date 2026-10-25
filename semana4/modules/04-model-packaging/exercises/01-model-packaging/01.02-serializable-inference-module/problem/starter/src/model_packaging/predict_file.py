@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import argparse
-import json
+from csv import DictReader, DictWriter
 from pathlib import Path
 
-from model_inference.contracts import WineQualityRequest
+from model_packaging.artifact import (
+    DEFAULT_BUNDLE_PATH,
+    infer_wine_quality,
+    load_model_bundle,
+)
+from model_packaging.contracts import WineQualityRequest
 
-from model_packaging.artifact import DEFAULT_BUNDLE_PATH, infer_wine_quality, load_model_bundle
-from csv import DictReader, DictWriter
 
 def predict_file(
     input_path: Path,
@@ -21,11 +24,25 @@ def predict_file(
     bundle = load_model_bundle(bundle_path)
     result = []
     for row in csv_reader:
-        x = WineQualityRequest.model_validate(row)
+        prep_row = {key: value for key, value in row.items() if key != "sample_id"}
+        x = WineQualityRequest.model_validate(prep_row)
         prediction = infer_wine_quality(bundle, x)
         result.append(prediction)
-    
-    DictWriter(output_path.open(), fieldnames=WineQualityRequest.model_fields)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with output_path.open("w", newline="", encoding="utf-8") as f:
+        writer = DictWriter(
+            f,
+            fieldnames=[
+                "quality_band",
+                "confidence",
+                "model_version",
+                "preprocessing_version",
+            ],
+        )
+        writer.writeheader()
+        writer.writerows(prediction.model_dump() for prediction in result)
+    return len(result)
 
 
 def parse_args() -> argparse.Namespace:
