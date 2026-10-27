@@ -100,7 +100,7 @@ class HttpInferenceGateway:
             raise BackendInferenceError(
                 "El backend no pudo producir una salida compatible"
             ) from e
-        
+
     @staticmethod
     def _read_object(response: Any) -> dict[str, Any]:
         """Lee una respuesta JSON que debe representar un objeto."""
@@ -115,6 +115,7 @@ class HttpInferenceGateway:
             raise BackendInferenceError(
                 "La respuesta del backend no es un objeto JSON válido"
             ) from e
+
     @staticmethod
     def _request_id(response: Any, body: dict[str, Any]) -> str | None:
         """Obtiene request_id del cuerpo y usa la cabecera como alternativa."""
@@ -123,7 +124,7 @@ class HttpInferenceGateway:
         if request_id is not None:
             return request_id
         return HttpInferenceGateway._header_request_id(response)
-    
+
     @staticmethod
     def _header_request_id(response: Any) -> str | None:
         headers = getattr(response, "headers", {})
