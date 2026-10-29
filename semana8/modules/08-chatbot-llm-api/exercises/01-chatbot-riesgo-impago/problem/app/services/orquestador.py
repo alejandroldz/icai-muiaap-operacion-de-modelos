@@ -53,7 +53,7 @@ def ejecutar_tool(nombre: str, argumentos_json:str) ->dict:
     
     resultado = predecir(entrada)
     
-    return {"ok": True, "resultado": resultado}
+    return {"ok": True, **resultado.model_dump()}
 # TODO: responder(mensajes, llm) -> ChatSalida, con el bucle LLM -> tool -> LLM (maximo MAX_VUELTAS)
 def responder(mensajes, llm) -> ChatSalida:
     historial = [{"role": "system", "content": SISTEMA}] 

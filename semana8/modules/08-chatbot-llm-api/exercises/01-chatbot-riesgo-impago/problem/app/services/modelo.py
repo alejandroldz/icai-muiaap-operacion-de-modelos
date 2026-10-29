@@ -25,7 +25,8 @@ def decidir(probabilidad: float) -> str:
         return "rechazar"
 # TODO: funcion predecir(entrada) -> PrediccionSalida, usando VARIABLES para ordenar los valores
 def predecir(entrada) -> PrediccionSalida:
-    data = [entrada[var] for var in VARIABLES]
+    datos = entrada.model_dump()
+    data = [datos[var] for var in VARIABLES]
     probabilidad = modelo.predict_proba([data])[0][1]
     decision = decidir(probabilidad)
     return PrediccionSalida(probabilidad_impago=probabilidad, decision=decision)
