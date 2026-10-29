@@ -11,7 +11,7 @@ class PrestamoEntrada(BaseModel):
 
     edad: int = Field(ge=18, le=75)
     ingresos_mensuales: float = Field(ge=0)
-    importo_prestamo: float = Field(ge=0)
+    importe_prestamo: float = Field(ge=0)
     plazo_meses: int = Field(ge=6, le=64)
     antiguedad_laboral_anios: int = Field(ge=0, le=50, )
     impagos_previos: int = Field(ge=0, le=20)

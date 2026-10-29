@@ -47,7 +47,7 @@ def ejecutar_tool(nombre: str, argumentos_json:str) ->dict:
     argumentos = leer_argumentos(argumentos_json)
     
     try:
-        entrada = PrestamoEntrada.model_validate(argumentos.to_dict())
+        entrada = PrestamoEntrada.model_validate(argumentos)
     except ValidationError as e:
         return {"ok": False, "error": f"Datos invalidos: {e}"}
     
@@ -56,6 +56,33 @@ def ejecutar_tool(nombre: str, argumentos_json:str) ->dict:
     return {"ok": True, "resultado": resultado}
 # TODO: responder(mensajes, llm) -> ChatSalida, con el bucle LLM -> tool -> LLM (maximo MAX_VUELTAS)
 def responder(mensajes, llm) -> ChatSalida:
-    mensajes = [{"role": "system", "content": SISTEMA}]
+    historial = [{"role": "system", "content": SISTEMA}] 
+    for mensaje in mensajes:
+        historial.append({"role": mensaje.role, "content": mensaje.content})
+    herramienta_usada = None
     for _ in range(MAX_VUELTAS):
-        respuesta = llm.completar(mensajes, [definir_tool()])
+        respuesta = llm.completar(historial, [definir_tool()])
+        if "tool_calls" not in respuesta:
+            return ChatSalida(respuesta=respuesta.get("content") or "", herramienta=herramienta_usada)
+        llamada = respuesta["tool_calls"][0]
+        nombre = llamada["function"]["name"]
+        argumentos_json = llamada["function"]["arguments"]
+        argumentos = leer_argumentos(argumentos_json)
+        resultado = ejecutar_tool(nombre, argumentos_json)
+        herramienta_usada = HerramientaUsada(
+            nombre=nombre,
+            argumentos=argumentos,
+            resultado=resultado,
+        )
+        historial.extend(
+            [
+                respuesta,
+                {
+                    "role": "tool",
+                    "tool_call_id": llamada["id"],
+                    "content": json.dumps(resultado),
+                },
+            ]
+        )
+
+    return ChatSalida(respuesta="No he podido completar la solicitud.", herramienta=herramienta_usada)

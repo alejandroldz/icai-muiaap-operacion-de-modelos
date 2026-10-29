@@ -7,3 +7,8 @@ router = APIRouter()
 
 
 # TODO: POST /predict (entrada PrestamoEntrada, salida PrediccionSalida)
+@router.post("/predict", response_model=PrediccionSalida)
+def predict(prestamo: PrestamoEntrada):
+    """Predice el riesgo de impago de un prestamo."""
+    resultado = predecir(prestamo)
+    return PrediccionSalida(**resultado)
