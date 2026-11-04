@@ -72,14 +72,32 @@ async def handle_validation_error(
     # - Si no, 422 con `ErrorCode.VALIDATION_ERROR` y una lista de FieldError
     #   (usa `field_path`). Nunca copies `input`: puede contener datos del
     #   usuario. Comprobación: tests/test_s9_2_errors.py
-    raise NotImplementedError("TODO S9.2a")
-
+    for error in exc.errors():
+        if error.get("type") == "json_invalid":
+            return error_response(
+                request,
+                status_code=400,
+                code=ErrorCode.INVALID_JSON,
+                message="Request body is not valid JSON",
+            )
+    
+    return error_response(
+        request,
+        status_code=422,
+        code=ErrorCode.VALIDATION_ERROR,
+        message="Request body validation failed",
+        # fields=
+    )
 
 async def handle_api_error(request: Request, exc: WineApiError) -> JSONResponse:
     # TODO S9.2b: traduce cualquier WineApiError usando los atributos de clase
     # `status_code`, `code` y `message`. Una línea con `error_response`.
-    raise NotImplementedError("TODO S9.2b")
-
+    return error_response(
+        request,
+        status_code=exc.status_code,
+        code=exc.code,
+        message=exc.message,
+    )
 
 async def handle_http_exception(
     request: Request, exc: StarletteHTTPException
